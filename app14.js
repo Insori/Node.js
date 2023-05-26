@@ -2,9 +2,9 @@
  * 파일 업로드하기
  * 
  * 웹브라우저에서 아래 주소의 페이지를 열고 웹페이지에서 요청
- *    http://localhost:3000/public/photo.html
+ *    http://localhost:3000/photomulti.html
  *
- * 파일업로드를 위해 클라이언트에서 지정한 이름은 photo 입니다.
+ * 파일업로드를 위해 클라이언트에서 지정한 이름은 photomulti 입니다.
  *
  */
 
@@ -40,13 +40,13 @@ var app = express();
 app.set('port', process.env.PORT || 3000);
 
 // body-parser를 이용해 application/x-www-form-urlencoded 파싱
-app.use(express.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({ extended: false }))
 
 // body-parser를 이용해 application/json 파싱
-app.use(express.json())
+app.use(bodyParser.json())
 
 // public 폴더와 uploads 폴더 오픈
-app.use('/public', static(path.join(__dirname, 'public')));
+app.use(static(path.join(__dirname, 'public')));//변경
 app.use('/uploads', static(path.join(__dirname, 'uploads')));
 
 // cookie-parser 설정
@@ -71,7 +71,7 @@ var storage = multer.diskStorage({
         callback(null, 'uploads')
     },
     filename: function (req, file, callback) {
-        //callback(null, file.originalname + Date.now())
+        /*callback(null, file.originalname + Date.now())*/
 		//callback(null, file.originalname)
 		var extension = path.extname(file.originalname);
 		var basename = path.basename(file.originalname, extension);
@@ -79,10 +79,10 @@ var storage = multer.diskStorage({
 	 }
 });
 
-var upload = multer({ //=>upload라는 변수에 multer()를 할당하고 실행하여줌
+var upload = multer({ 
     storage: storage,
     limits: {
-		files: 10,
+		files: 10,//파일의 개수 만큼 변경
 		fileSize: 1024 * 1024 * 1024
 	}
 });
@@ -94,53 +94,41 @@ var router = express.Router();
 // 파일 업로드 라우팅 함수 - 로그인 후 세션 저장함
 router.route('/process/photomulti').post(upload.array('photo', 10), function(req, res) {
 	console.log('/process/photomulti 호출됨.');
-	res.writeHead('200', {'Content-Type':'text/html;charset=utf8'});
+	res.writeHead('200', {'Content-Type':'text/html;charset=utf8'});//변경, 추가
 	try {
 		var files = req.files;
-        
+      
 		// 현재의 파일 정보를 저장할 변수 선언
 		var originalname = '',
 			filename = '',
 			mimetype = '',
 			size = 0;
 		
-		if (Array.isArray(files)) {   // 배열에 들어가 있는 경우 (설정에서 1개의 파일도 배열에 넣게 했음)
-	        console.log("배열에 들어있는 파일 갯수 : %d", files.length);
-	        
-	        for (var index = 0; index < files.length; index++) {
-                console.dir('#====  업로드된 '+(index+1)+'번째 파일 정보 ====#')
-	        	originalname = files[index].originalname;
-	        	filename = files[index].filename;
-	        	mimetype = files[index].mimetype;
-	        	size = files[index].size;
-                console.log('현재 파일 정보: '+originalname+','+filename+','+mimetype+','+size);
-	        }
-	        
-	    } else {   // 배열에 들어가 있지 않은 경우 (현재 설정에서는 해당 없음)
-	       // console.log("파일 갯수 : 1 ");
-	        
-	    	originalname = files[index].originalname;
-	    	filename = files[index].name;
-	    	mimetype = files[index].mimetype;
-	    	size = files[index].size;
-	    }
-		
-		console.log('현재 파일 정보 : ' + originalname + ', ' + filename + ', '
-				+ mimetype + ', ' + size);
-		
-		// 클라이언트에 응답 전송
-		res.writeHead('200', {'Content-Type':'text/html;charset=utf8'});
-		res.write('<h3>파일 업로드 성공</h3>');
-		res.write('<hr/>');
-		res.write('<p>원본 파일명 : ' + originalname + ' -> 저장 파일명 : ' + filename + '</p>');
-		res.write('<p>MIME TYPE : ' + mimetype + '</p>');
-		res.write('<p>파일 크기 : ' + size + '</p>');
-		res.end();
-		
+			if (Array.isArray(files)) {   // 배열에 들어가 있는 경우 (설정에서 1개의 파일도 배열에 넣게 했음)
+				console.log("배열에 들어있는 파일 갯수 : %d", files.length);
+				
+				for (var index = 0; index < files.length; index++) {
+					console.dir('#===== 업로드된 '+ (index+1) +' 번째 파일 정보 =====#')
+					originalname = files[index].originalname;
+					filename = files[index].filename;
+					mimetype = files[index].mimetype;
+					size = files[index].size;
+					console.log('현재 파일 정보 : ' + originalname + ', ' + filename + ', '
+					+ mimetype + ', ' + size);
+			
+					// 클라이언트에 응답 전송
+					res.write( '<h3> '+(index+1)+' 번째 파일 업로드 성공</h3>');
+					res.write('<hr/>');
+					res.write('<p>원본 파일명 : ' + originalname + '<br> -> 저장 파일명 : ' + filename + '</p>');
+					res.write('<p>MIME TYPE : ' + mimetype + '</p>');
+					res.write('<p>파일 크기 : ' + size + '</p>');
+					res.end();
+				}
+
+			}
 	} catch(err) {
 		console.dir(err.stack);
 	}	
-		
 });
  
 app.use('/', router);
@@ -152,6 +140,8 @@ var errorHandler = expressErrorHandler({
       '404': './public/404.html'
     }
 });
+
+
 
 app.use( expressErrorHandler.httpError(404) );
 app.use( errorHandler );
